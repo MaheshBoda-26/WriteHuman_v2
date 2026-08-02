@@ -11,9 +11,19 @@ import {
 import { Copy, Sparkles, ScanSearch, Check, Loader2, Save, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const HUMANIZE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/humanize`;
 const DETECT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/detect-ai`;
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
 
 async function streamHumanize({
   text,
@@ -34,10 +44,7 @@ async function streamHumanize({
 }) {
   const resp = await fetch(HUMANIZE_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-    },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ text, readability, purpose, bypassLevel }),
   });
 
@@ -195,10 +202,7 @@ const TextEditor = ({ onSave, selectedDocument }: TextEditorProps) => {
     try {
       const resp = await fetch(DETECT_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ text }),
       });
 

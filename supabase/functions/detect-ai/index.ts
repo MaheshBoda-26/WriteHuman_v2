@@ -20,9 +20,9 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
     const systemPrompt = `You are an expert AI content detector that analyzes text to determine if it was written by AI or a human. Analyze the provided text using these detection signals:
@@ -50,63 +50,30 @@ Human-Written Indicators:
 - Inconsistent but natural flow
 - Specific cultural or contextual references
 
-Provide your analysis as a JSON object with this exact structure:
+The aiScore and humanScore should sum to 100.
+
+Return ONLY a JSON object with this exact format:
 {
-  "aiScore": <number 0-100 representing likelihood of AI generation>,
-  "humanScore": <number 0-100 representing likelihood of human authorship>,
-  "confidence": "<low|medium|high>",
-  "signals": [<array of 3-5 specific observations about the text>]
-}
+  "aiScore": number,
+  "humanScore": number,
+  "confidence": "low" | "medium" | "high",
+  "signals": string[]
+}`;
 
-The aiScore and humanScore should sum to 100.`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://writehuman.app",
+        "X-Title": "WriteHuman",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "anthropic/claude-3-haiku",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Analyze this text for AI detection:\n\n${text}` },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "report_detection_result",
-              description: "Report the AI detection analysis results",
-              parameters: {
-                type: "object",
-                properties: {
-                  aiScore: {
-                    type: "number",
-                    description: "Likelihood of AI generation (0-100)",
-                  },
-                  humanScore: {
-                    type: "number",
-                    description: "Likelihood of human authorship (0-100)",
-                  },
-                  confidence: {
-                    type: "string",
-                    enum: ["low", "medium", "high"],
-                    description: "Confidence level of the detection",
-                  },
-                  signals: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Specific observations about the text (3-5 items)",
-                  },
-                },
-                required: ["aiScore", "humanScore", "confidence", "signals"],
-                additionalProperties: false,
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "report_detection_result" } },
       }),
     });
 
@@ -124,7 +91,7 @@ The aiScore and humanScore should sum to 100.`;
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("OpenRouter error:", response.status, errorText);
       return new Response(
         JSON.stringify({ error: "AI service error. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -132,25 +99,33 @@ The aiScore and humanScore should sum to 100.`;
     }
 
     const data = await response.json();
-    
-    // Extract the tool call result
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== "report_detection_result") {
-      throw new Error("Invalid response from AI");
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new Error("Empty response from AI");
     }
 
-    const result = JSON.parse(toolCall.function.arguments);
-    
+    // Parse JSON from response
+    let result: { aiScore: number; humanScore: number; confidence: string; signals: string[] };
+    try {
+      // Extract JSON from markdown code blocks or raw text
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || content.match(/(\{[\s\S]*\})/);
+      const jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim();
+      result = JSON.parse(jsonStr);
+    } catch {
+      throw new Error("Could not parse AI response as detection result");
+    }
+
     // Ensure scores are valid
-    const aiScore = Math.max(0, Math.min(100, Math.round(result.aiScore || 50)));
-    const humanScore = Math.max(0, Math.min(100, Math.round(result.humanScore || 50)));
-    
+    const aiScore = Math.max(0, Math.min(100, Math.round(result.aiScore ?? 50)));
+    const humanScore = Math.max(0, Math.min(100, Math.round(result.humanScore ?? 50)));
+
     return new Response(
       JSON.stringify({
         aiScore,
         humanScore,
-        confidence: result.confidence || "medium",
-        signals: result.signals || [],
+        confidence: result.confidence ?? "medium",
+        signals: result.signals ?? [],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

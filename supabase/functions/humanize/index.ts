@@ -20,24 +20,25 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
     const readabilityGuide = {
-      "simple": "Use basic vocabulary, short sentences (8-12 words avg), simple sentence structures. Avoid jargon.",
       "general": "Use everyday vocabulary, moderate sentence length (12-18 words avg), clear structures.",
-      "advanced": "Use sophisticated vocabulary where natural, varied sentence length (15-25 words avg), complex ideas expressed clearly.",
-      "academic": "Use precise academic vocabulary, formal but not robotic tone, proper citations style if present."
+      "university": "Use sophisticated vocabulary, varied sentence length (15-25 words avg), complex ideas expressed clearly.",
+      "doctorate": "Use precise academic vocabulary, formal but not robotic tone, proper citations style if present."
     };
 
     const purposeGuide = {
       "academic": "Maintain scholarly tone, use hedging language ('suggests', 'appears to'), include topic sentences, logical flow.",
-      "blog": "Conversational, engaging, use 'you' and 'I', include opinions, rhetorical questions, relatable examples.",
+      "marketing": "Persuasive, benefit-focused, use power words, create urgency, clear calls to action.",
       "business": "Professional but warm, action-oriented, clear and concise, avoid buzzwords.",
-      "creative": "Expressive, varied rhythm, sensory details, unique voice, emotional resonance.",
-      "social": "Casual, trendy language, incomplete sentences OK, emojis if appropriate, very human."
+      "journalism": "Inverted pyramid style, lead with key facts, objective tone, attributed sources, newsworthy angle.",
+      "email": "Concise and direct, clear subject relevance, professional greeting/closing, actionable next steps.",
+      "essay": "Develop a clear thesis, support with evidence, logical paragraph transitions, reflective conclusion.",
+      "story": "Engaging narrative arc, vivid descriptions, character development, dialogue where appropriate, emotional resonance."
     };
 
     const bypassGuide = {
@@ -94,14 +95,16 @@ AI detectors look for these - you MUST avoid them:
 
 Now rewrite the following text to be genuinely human:`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://writehuman.app",
+        "X-Title": "WriteHuman",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "anthropic/claude-3-haiku",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Please humanize the following text:\n\n${text}` },
@@ -124,7 +127,7 @@ Now rewrite the following text to be genuinely human:`;
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("OpenRouter error:", response.status, errorText);
       return new Response(
         JSON.stringify({ error: "AI service error. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
