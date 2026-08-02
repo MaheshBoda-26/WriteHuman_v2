@@ -1,78 +1,116 @@
-# Welcome to your Lovable project
+# WriteHuman - AI Text Humanizer
 
-## Project info
+Transform AI-generated text into natural, human-like writing. Detect AI content and humanize it with advanced tools.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- **Humanize Text** - Convert AI-generated text into natural, human-like writing
+- **AI Detection** - Analyze text to detect AI authorship with confidence scoring
+- **Multi-pass Refinement** - Re-humanize text iteratively for better results
+- **Customizable Settings** - Adjust readability, purpose, and bypass intensity
+- **Document History** - Save and manage your humanized documents
+- **Real-time Streaming** - See results as they generate
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript, Vite
+- **UI**: shadcn/ui (Radix UI), Tailwind CSS
+- **State**: TanStack Query, React Context
+- **Backend**: Supabase (Auth, Database, Edge Functions)
+- **AI**: OpenRouter API (Claude 3 Haiku)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ / Bun
+- Supabase account
+- OpenRouter API key
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Installation
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
+cd WriteHuman
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+bun install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Copy environment variables
+cp .env.example .env
+# Edit .env with your credentials
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Start development server
+bun run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Create a `.env` file with:
 
-**Use GitHub Codespaces**
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+OPENROUTER_API_KEY=your_openrouter_api_key
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Supabase Setup
 
-## What technologies are used for this project?
+1. Create a new Supabase project
+2. Run migrations in `supabase/migrations/`
+3. Deploy Edge Functions:
+   ```sh
+   supabase functions deploy humanize
+   supabase functions deploy detect-ai
+   ```
+4. Set `OPENROUTER_API_KEY` in Supabase Dashboard > Settings > Edge Functions
 
-This project is built with:
+## Project Structure
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+src/
+├── components/       # React components
+│   ├── ui/          # shadcn/ui components
+│   ├── TextEditor.tsx    # Main editor with humanize/detect
+│   ├── DocumentHistory.tsx
+│   ├── Header.tsx, HeroSection.tsx, etc.
+├── pages/           # Page components
+│   ├── Index.tsx    # Landing page
+│   ├── Dashboard.tsx      # Authenticated editor
+│   ├── Login.tsx, Signup.tsx
+├── contexts/        # React contexts (Auth)
+├── hooks/           # Custom hooks
+├── integrations/    # Supabase client & types
+├── lib/             # Utilities
+supabase/
+├── functions/       # Edge Functions
+│   ├── humanize/    # Text humanization
+│   └── detect-ai/   # AI detection
+└── migrations/      # Database schema
+```
 
-## How can I deploy this project?
+## Scripts
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```sh
+bun run dev       # Start dev server
+bun run build     # Production build
+bun run lint      # Run ESLint
+bun run preview   # Preview production build
+```
 
-## Can I connect a custom domain to my Lovable project?
+## Deployment
 
-Yes, you can!
+### Vercel (Frontend)
+1. Connect repository to Vercel
+2. Add environment variables
+3. Deploy
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Supabase (Backend)
+1. Link project: `supabase link --project-ref <ref>`
+2. Deploy functions: `supabase functions deploy`
+3. Set secrets: `supabase secrets set OPENROUTER_API_KEY=<key>`
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
-# WriteHuman
-# WriteHuman
-# WriteHuman
-# WriteHuman
-# WriteHuman_v2
+## License
+
+MIT
